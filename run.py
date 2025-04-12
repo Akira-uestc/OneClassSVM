@@ -44,8 +44,9 @@ def visualize_scores(scores, threshold, title, index=None):
 def main():
     train_data, test_data1, test_data2, idx1, idx2 = load_data()
 
+    print("Data loaded and scaled.")
     # 初始化 & 拟合模型
-    model = OneClassSVM(nu=0.1, gamma=0.1)
+    model = OneClassSVM(nu=0.3, gamma=0.3)
     model.fit(train_data)
 
     print("Model fitted.")

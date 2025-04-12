@@ -1,6 +1,7 @@
 import numpy as np
 from cvxopt import matrix, solvers
 from sklearn.preprocessing import StandardScaler
+import numba
 
 
 class OneClassSVM:
@@ -16,10 +17,25 @@ class OneClassSVM:
     def _rbf_kernel(self, X, Y=None):
         if Y is None:
             Y = X
-        X_sq = np.sum(X**2, axis=1)
-        Y_sq = np.sum(Y**2, axis=1)
-        dist_sq = X_sq[:, None] + Y_sq[None, :] - 2 * np.dot(X, Y.T)
-        return np.exp(-self.gamma * dist_sq)
+        return self._static_rbf_kernel(X, Y, self.gamma)
+
+    @staticmethod
+    @numba.njit(fastmath=True, parallel=True)
+    def _static_rbf_kernel(X, Y, gamma):
+        n_samples_X = X.shape[0]
+        n_samples_Y = Y.shape[0]
+        n_features = X.shape[1]
+        K = np.zeros((n_samples_X, n_samples_Y))
+        for i in numba.prange(n_samples_X):
+            x_i = X[i]
+            for j in range(n_samples_Y):
+                y_j = Y[j]
+                sum_sq = 0.0
+                for k in range(n_features):
+                    diff = x_i[k] - y_j[k]
+                    sum_sq += diff * diff
+                K[i, j] = np.exp(-gamma * sum_sq)
+        return K
 
     def fit(self, X):
         self.scaler = StandardScaler()
